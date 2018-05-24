@@ -1,26 +1,21 @@
 package com.crazywah.cloudlessondemo;
 
-import android.animation.ObjectAnimator;
 import android.support.design.widget.TabLayout;
 import android.support.v4.app.Fragment;
-import android.support.v4.view.ViewPager;
-import android.support.v7.app.AppCompatActivity;
+import android.support.v4.app.FragmentActivity;
 import android.os.Bundle;
-import android.util.Log;
-import android.view.MotionEvent;
 import android.view.View;
-import android.view.ViewGroup;
 import android.widget.LinearLayout;
 import android.widget.RelativeLayout;
 
-import com.crazywah.cloudlessondemo.ui.adapter.FragmentPagerAdapter;
+import com.crazywah.cloudlessondemo.ui.adapter.MyAdapter;
 import com.crazywah.cloudlessondemo.ui.fragment.AFragment;
 import com.crazywah.cloudlessondemo.widget.CustomViewPager;
 
 import java.util.ArrayList;
 import java.util.List;
 
-public class MainActivity extends AppCompatActivity implements CustomViewPager.OnOrientationScrollListener {
+public class MainActivity extends FragmentActivity implements CustomViewPager.OnVerticalScrollListener {
 
     private static final String TAG = "MainActivity";
 
@@ -34,7 +29,7 @@ public class MainActivity extends AppCompatActivity implements CustomViewPager.O
 
     private List<Fragment> list = new ArrayList<>();
 
-    private FragmentPagerAdapter fragmentPagerAdapter;
+    private MyAdapter myAdapter;
 
     private int height = 0;
     private int offset = 0;
@@ -51,16 +46,15 @@ public class MainActivity extends AppCompatActivity implements CustomViewPager.O
         viewPager = findViewById(R.id.viewpager);
         tabLayout = findViewById(R.id.tab_layout);
 
-        viewPager.setOnOrientationScrollListener(this);
+        viewPager.setOnVerticalScrollListener(this);
 
         for (int i = 0; i < 4; i++) {
             list.add(new AFragment());
-            tabLayout.addTab(tabLayout.newTab().setText("Tab" + (i + 1)));
         }
 
-        fragmentPagerAdapter = new FragmentPagerAdapter(list, getSupportFragmentManager());
+        myAdapter = new MyAdapter(list, getSupportFragmentManager());
 
-        viewPager.setAdapter(fragmentPagerAdapter);
+        viewPager.setAdapter(myAdapter);
         tabLayout.setupWithViewPager(viewPager);
 
         for (int i = 0; i < 4; i++) {
@@ -74,22 +68,30 @@ public class MainActivity extends AppCompatActivity implements CustomViewPager.O
     // TODO: 2018/5/22 为什么一下操作在ontouch里面会卡，而在dispatchtouch里面不卡
 
     @Override
-    public void onOrientationScroll(float deltaY) {
+    public boolean onOrientationScroll(float deltaY) {
+
+        if((deltaY<0&&title_bar.getBottom()==0)||(deltaY>0&&title_bar.getTop()==0)){
+            return false;
+        }
+
         height = title_bar.getHeight();
         LinearLayout.LayoutParams layoutParams = (LinearLayout.LayoutParams) title_bar.getLayoutParams();
+
         if (deltaY < 0) {
-            offset = offset - DELTA < -height ? -height : offset - DELTA;
+            offset = offset - (1+Math.abs(deltaY)%50) < -height ? -height : offset - (int) (1+Math.abs(deltaY)%50);
         } else if (deltaY > 0) {
-            offset = offset + DELTA > 0 ? 0 : offset + DELTA;
+            offset = offset + (1+Math.abs(deltaY)%50) > 0 ? 0 : offset + DELTA;
         }
 
         layoutParams.setMargins(0, offset, 0, 0);
         title_bar.setLayoutParams(layoutParams);
 
-        if (offset == -height) {
-            title_bar.setVisibility(View.GONE);
-        } else {
-            title_bar.setVisibility(View.VISIBLE);
-        }
+        // TODO: 2018/5/24  如果设置了title_bar.GONE，上面判断是否滑动至顶部的判断条件则无法成立，所以会导致上滑时ScrollView卡顿
+//        if (offset == -height) {
+//            title_bar.setVisibility(View.GONE);
+//        } else {
+//            title_bar.setVisibility(View.VISIBLE);
+//        }
+        return true;
     }
 }

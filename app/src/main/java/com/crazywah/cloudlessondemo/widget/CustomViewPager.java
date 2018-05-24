@@ -5,17 +5,16 @@ import android.support.annotation.NonNull;
 import android.support.annotation.Nullable;
 import android.support.v4.view.ViewPager;
 import android.util.AttributeSet;
-import android.util.Log;
 import android.view.MotionEvent;
-import android.view.View;
-import android.widget.LinearLayout;
 
 /**
  * 自定义Viewpager
  */
 public class CustomViewPager extends ViewPager {
 
-    private OnOrientationScrollListener onOrientationScrollListener = null;
+    private OnVerticalScrollListener onVerticalScrollListener = null;
+
+    private Scrollable scrollable = null;
 
     private float lastRawY = 0;
     private float lastRawX = 0;
@@ -28,46 +27,65 @@ public class CustomViewPager extends ViewPager {
         super(context, attrs);
     }
 
+    /**
+     * 事件分发
+     *
+     * @param ev
+     * @return
+     */
     @Override
     public boolean dispatchTouchEvent(MotionEvent ev) {
-
+        boolean flag = false;
         switch (ev.getAction()) {
             case MotionEvent.ACTION_DOWN:
+                lastRawY = ev.getRawY();
+                lastRawX = ev.getRawX();
                 break;
             case MotionEvent.ACTION_MOVE:
-                if (lastRawY == 0) {
+                final float deltaY = ev.getRawY() - lastRawY;
+                final float deltaX = ev.getRawX() - lastRawX;
+                if (Math.abs(deltaX) > Math.abs(deltaY)) {
+                    return super.dispatchTouchEvent(ev);
+                } else {
+                    if (onVerticalScrollListener != null) {
+                        flag = onVerticalScrollListener.onOrientationScroll(deltaY);
+                    }
                     lastRawY = ev.getRawY();
                     lastRawX = ev.getRawX();
-                } else {
-                    final float deltaY = ev.getRawY() - lastRawY;
-                    final float deltaX = ev.getRawX() - lastRawX;
-                    if (Math.abs(deltaX) > Math.abs(deltaY)) {
-                        return super.dispatchTouchEvent(ev);
-                    } else {
-                        if (onOrientationScrollListener != null) {
-                            onOrientationScrollListener.onOrientationScroll(deltaY);
-                        }
-                        lastRawY = ev.getRawY();
-                        lastRawX = ev.getRawX();
-                        return true;
-                    }
                 }
                 break;
         }
-        return super.dispatchTouchEvent(ev);
+        return flag ? flag : super.dispatchTouchEvent(ev);
     }
 
-    public OnOrientationScrollListener getOnOrientationScrollListener() {
-        return onOrientationScrollListener;
+    public OnVerticalScrollListener getOnVerticalScrollListener() {
+        return onVerticalScrollListener;
     }
 
-    public void setOnOrientationScrollListener(OnOrientationScrollListener onOrientationScrollListener) {
-        this.onOrientationScrollListener = onOrientationScrollListener;
+    public void setOnVerticalScrollListener(OnVerticalScrollListener onVerticalScrollListener) {
+        this.onVerticalScrollListener = onVerticalScrollListener;
     }
 
-    public interface OnOrientationScrollListener {
+    public Scrollable getScrollable() {
+        return scrollable;
+    }
 
-        void onOrientationScroll(float deltaY);
+    public void setScrollable(Scrollable scrollable) {
+        this.scrollable = scrollable;
+    }
+
+    /**
+     * 竖直方向滑动监听器接口
+     */
+    public interface OnVerticalScrollListener {
+
+        boolean onOrientationScroll(float deltaY);
+
+    }
+
+    public interface Scrollable {
+
+        boolean isScrollable();
 
     }
 
